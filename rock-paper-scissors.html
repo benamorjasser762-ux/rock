@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rock Paper Scissors</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #2a2a3a;
+    --rock: #e84040;
+    --paper: #4080e8;
+    --scissors: #e8c040;
+    --win: #40e880;
+    --lose: #e84040;
+    --draw: #8080b0;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+    --text: #f0f0ff;
+    --muted: #6060a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, #1a0a2a55 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, #0a1a3055 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 40px;
+  }
+
+  .tabs {
+    display: flex;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .tab {
+    flex: 1;
+    background: var(--surface);
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid var(--border);
+  }
+
+  .tab:last-child { border-right: none; }
+  .tab.active { background: #1e1e2e; color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); background: #16161f; }
+
+  .section { display: none; width: 100%; flex-direction: column; align-items: center; gap: 18px; }
+  .section.active { display: flex; }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 8vw, 3.5rem);
+    letter-spacing: 0.1em;
+    text-align: center;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--rock), var(--paper), var(--scissors));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 10px;
+  }
+
+  .name-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .name-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .name-input:focus { border-color: var(--paper); }
+  .name-input::placeholder { color: var(--muted); }
+
+  .name-btn {
+    background: var(--surface);
+    border: 1px solid var(--paper);
+    color: var(--paper);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .name-btn:hover { background: var(--paper); color: var(--bg); }
+
+  .player-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .player-tag span { color: var(--paper); }
+
+  .score-board {
+    display: flex;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .score-item {
+    flex: 1;
+    padding: 10px 8px;
+    text-align: center;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+
+  .score-item:last-child { border-right: none; }
+
+  .score-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+
+  .score-item.wins .score-num { color: var(--win); }
+  .score-item.draws .score-num { color: var(--draw); }
+  .score-item.loses .score-num { color: var(--lose); }
+
+  .arena {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 120px;
+  }
+
+  .arena-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .arena-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .arena-choice {
+    font-size: 3rem;
+    line-height: 1;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .arena-choice.shake { animation: shake 0.5s ease; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0) rotate(0); }
+    20% { transform: translateX(-6px) rotate(-5deg); }
+    40% { transform: translateX(6px) rotate(5deg); }
+    60% { transform: translateX(-4px) rotate(-3deg); }
+    80% { transform: translateX(4px) rotate(3deg); }
+  }
+
+  .vs-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .result-msg {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    letter-spacing: 0.1em;
+    text-align: center;
+    min-height: 2.2rem;
+  }
+
+  .result-msg.win { color: var(--win); }
+  .result-msg.lose { color: var(--lose); }
+  .result-msg.draw { color: var(--draw); }
+
+  .choices {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .choice-btn {
+    flex: 1;
+    max-width: 150px;
+    aspect-ratio: 1;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .choice-btn.rock::before { background: radial-gradient(circle at center, #e8404022, transparent 70%); }
+  .choice-btn.paper::before { background: radial-gradient(circle at center, #4080e822, transparent 70%); }
+  .choice-btn.scissors::before { background: radial-gradient(circle at center, #e8c04022, transparent 70%); }
+  .choice-btn:hover::before { opacity: 1; }
+
+  .choice-btn.rock { border-color: #e8404066; }
+  .choice-btn.paper { border-color: #4080e866; }
+  .choice-btn.scissors { border-color: #e8c04066; }
+
+  .choice-btn:hover.rock { border-color: var(--rock); transform: translateY(-4px); box-shadow: 0 8px 24px #e8404033; }
+  .choice-btn:hover.paper { border-color: var(--paper); transform: translateY(-4px); box-shadow: 0 8px 24px #4080e833; }
+  .choice-btn:hover.scissors { border-color: var(--scissors); transform: translateY(-4px); box-shadow: 0 8px 24px #e8c04033; }
+  .choice-btn:active { transform: translateY(-1px) scale(0.97); }
+
+  .choice-emoji { font-size: 2.2rem; line-height: 1; }
+  .choice-name { font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 7px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover { border-color: var(--muted); color: var(--text); }
+
+  .thinking { display: none; gap: 4px; align-items: center; }
+  .thinking.visible { display: flex; }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: blink 1.2s infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.2); }
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .pop { animation: pop 0.4s ease; }
+
+  /* ── LEADERBOARD ── */
+  .lb-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .lb-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--gold), var(--scissors));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .lb-clear {
+    background: none;
+    border: 1px solid #e8404044;
+    color: var(--lose);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .lb-clear:hover { background: #e8404022; border-color: var(--lose); }
+
+  .lb-table {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .lb-head {
+    display: grid;
+    grid-template-columns: 36px 1fr 52px 52px 52px 64px;
+    padding: 8px 14px;
+    background: #1a1a28;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .lb-head-cell {
+    font-size: 0.5rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .lb-head-cell:nth-child(2) { text-align: left; }
+
+  .lb-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 52px 52px 52px 64px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: #1a1a28; }
+  .lb-row.rank-1 { background: #1a180055; }
+  .lb-row.rank-2 { background: #14141855; }
+  .lb-row.rank-3 { background: #18140e55; }
+
+  .lb-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .lb-rank.r1 { color: var(--gold); }
+  .lb-rank.r2 { color: var(--silver); }
+  .lb-rank.r3 { color: var(--bronze); }
+  .lb-rank.other { color: var(--muted); font-size: 0.75rem; }
+
+  .lb-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
+  }
+
+  .lb-cell {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
+  .lb-cell.w { color: var(--win); }
+  .lb-cell.d { color: var(--draw); }
+  .lb-cell.l { color: var(--lose); }
+
+  .lb-winrate {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .lb-winrate.good { color: var(--win); }
+  .lb-winrate.ok { color: var(--scissors); }
+
+  .lb-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    line-height: 1.8;
+    background: var(--surface);
+  }
+
+  .lb-note {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .save-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--win);
+    color: var(--bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    padding: 8px 20px;
+    border-radius: 6px;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .save-toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="page">
+  <h1>Rock Paper Scissors</h1>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-game" onclick="switchTab('game')">🎮 Game</button>
+    <button class="tab" id="tab-leaderboard" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="section active" id="section-game">
+
+    <div class="name-row" id="name-entry">
+      <input class="name-input" id="name-input" type="text" placeholder="Enter your name to save scores..." maxlength="16" />
+      <button class="name-btn" onclick="setName()">Set</button>
+    </div>
+
+    <div class="player-tag" id="player-tag" style="display:none">
+      Playing as: <span id="current-name">—</span> &nbsp;·&nbsp;
+      <button style="background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:0.6rem;cursor:pointer;text-decoration:underline" onclick="changeName()">change</button>
+    </div>
+
+    <div class="score-board">
+      <div class="score-item wins">
+        <div class="score-label">Wins</div>
+        <div class="score-num" id="wins">0</div>
+      </div>
+      <div class="score-item draws">
+        <div class="score-label">Draws</div>
+        <div class="score-num" id="draws">0</div>
+      </div>
+      <div class="score-item loses">
+        <div class="score-label">Losses</div>
+        <div class="score-num" id="loses">0</div>
+      </div>
+    </div>
+
+    <div class="arena">
+      <div class="arena-side">
+        <div class="arena-label">You</div>
+        <div class="arena-choice" id="player-choice">✊</div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="arena-side">
+        <div class="arena-label">CPU</div>
+        <div class="arena-choice" id="cpu-choice">
+          <div class="thinking visible" id="thinking">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <span id="cpu-emoji" style="display:none">✊</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-msg" id="result">Choose your move!</div>
+
+    <div class="choices">
+      <button class="choice-btn rock" onclick="play('rock')">
+        <span class="choice-emoji">✊</span>
+        <span class="choice-name">Rock</span>
+      </button>
+      <button class="choice-btn paper" onclick="play('paper')">
+        <span class="choice-emoji">✋</span>
+        <span class="choice-name">Paper</span>
+      </button>
+      <button class="choice-btn scissors" onclick="play('scissors')">
+        <span class="choice-emoji">✌️</span>
+        <span class="choice-name">Scissors</span>
+      </button>
+    </div>
+
+    <div class="btn-row">
+      <button class="reset-btn" onclick="resetGame()">↺ Reset Score</button>
+      <button class="reset-btn" style="border-color:#40e88066;color:var(--win)" onclick="saveScore()">⬆ Save to Leaderboard</button>
+    </div>
+
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="section" id="section-leaderboard">
+    <div class="lb-header">
+      <div class="lb-title">🏆 Leaderboard</div>
+      <button class="lb-clear" onclick="clearLeaderboard()">✕ Clear All</button>
+    </div>
+    <div class="lb-note">Ranked by wins · Min 5 games to qualify · Shared with all players</div>
+    <div class="lb-table" id="lb-table">
+      <div class="lb-empty">Loading...</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="save-toast" id="save-toast">Score saved!</div>
+
+<script>
+  const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
+  const choices = ['rock', 'paper', 'scissors'];
+  let score = { wins: 0, draws: 0, loses: 0 };
+  let busy = false;
+  let playerName = '';
+
+  // Storage
+  async function lbGet() {
+    try {
+      const r = await window.storage.get('rps-leaderboard', true);
+      return r ? JSON.parse(r.value) : [];
+    } catch { return []; }
+  }
+
+  async function lbSet(data) {
+    try { await window.storage.set('rps-leaderboard', JSON.stringify(data), true); } catch(e) { console.error(e); }
+  }
+
+  // Tabs
+  function switchTab(tab) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('section-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'leaderboard') renderLeaderboard();
+  }
+
+  // Name
+  function setName() {
+    const v = document.getElementById('name-input').value.trim();
+    if (!v) return;
+    playerName = v;
+    document.getElementById('name-entry').style.display = 'none';
+    document.getElementById('player-tag').style.display = 'block';
+    document.getElementById('current-name').textContent = v;
+  }
+
+  function changeName() {
+    playerName = '';
+    document.getElementById('name-entry').style.display = 'flex';
+    document.getElementById('player-tag').style.display = 'none';
+    document.getElementById('name-input').value = '';
+  }
+
+  document.getElementById('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') setName(); });
+
+  // Play
+  function play(player) {
+    if (busy) return;
+    busy = true;
+    const cpu = choices[Math.floor(Math.random() * 3)];
+
+    document.getElementById('player-choice').textContent = emojis[player];
+    document.getElementById('player-choice').classList.add('shake');
+    setTimeout(() => document.getElementById('player-choice').classList.remove('shake'), 500);
+
+    document.getElementById('thinking').classList.add('visible');
+    document.getElementById('cpu-emoji').style.display = 'none';
+    document.getElementById('result').textContent = '';
+    document.getElementById('result').className = 'result-msg';
+
+    setTimeout(() => {
+      document.getElementById('thinking').classList.remove('visible');
+      const cpuEmoji = document.getElementById('cpu-emoji');
+      cpuEmoji.textContent = emojis[cpu];
+      cpuEmoji.style.display = 'block';
+      cpuEmoji.classList.add('shake');
+      setTimeout(() => cpuEmoji.classList.remove('shake'), 500);
+
+      let msg, cls;
+      if (player === cpu) {
+        msg = "DRAW!"; cls = 'draw'; score.draws++;
+      } else if (
+        (player === 'rock' && cpu === 'scissors') ||
+        (player === 'paper' && cpu === 'rock') ||
+        (player === 'scissors' && cpu === 'paper')
+      ) {
+        msg = "YOU WIN! 🎉"; cls = 'win'; score.wins++;
+      } else {
+        msg = "YOU LOSE!"; cls = 'lose'; score.loses++;
+      }
+
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = msg;
+      resultEl.className = 'result-msg ' + cls;
+      resultEl.classList.add('pop');
+      setTimeout(() => resultEl.classList.remove('pop'), 400);
+
+      document.getElementById('wins').textContent = score.wins;
+      document.getElementById('draws').textContent = score.draws;
+      document.getElementById('loses').textContent = score.loses;
+      busy = false;
+    }, 700);
+  }
+
+  function resetGame() {
+    score = { wins: 0, draws: 0, loses: 0 };
+    ['wins','draws','loses'].forEach(k => document.getElementById(k).textContent = '0');
+    document.getElementById('player-choice').textContent = '✊';
+    document.getElementById('thinking').classList.add('visible');
+    document.getElementById('cpu-emoji').style.display = 'none';
+    document.getElementById('result').textContent = 'Choose your move!';
+    document.getElementById('result').className = 'result-msg';
+  }
+
+  // Save
+  async function saveScore() {
+    const total = score.wins + score.draws + score.loses;
+    if (!playerName) { showToast('Set your name first! ☝️', '#e8c040'); return; }
+    if (total < 5) { showToast('Play at least 5 games first!', '#e8c040'); return; }
+
+    const lb = await lbGet();
+    const winRate = Math.round((score.wins / total) * 100);
+    const entry = { name: playerName, wins: score.wins, draws: score.draws, loses: score.loses, winRate, total };
+    const idx = lb.findIndex(e => e.name.toLowerCase() === playerName.toLowerCase());
+
+    if (idx >= 0) {
+      if (score.wins > lb[idx].wins || (score.wins === lb[idx].wins && winRate > lb[idx].winRate)) {
+        lb[idx] = entry;
+        showToast('New personal best! 🔥');
+      } else {
+        showToast('Previous best kept!', '#8080b0'); return;
+      }
+    } else {
+      lb.push(entry);
+      showToast('Score saved! 🎉');
+    }
+
+    lb.sort((a, b) => b.wins - a.wins || b.winRate - a.winRate);
+    await lbSet(lb);
+  }
+
+  // Render
+  async function renderLeaderboard() {
+    const lb = await lbGet();
+    const table = document.getElementById('lb-table');
+
+    if (lb.length === 0) {
+      table.innerHTML = '<div class="lb-empty">No scores yet.<br>Play some games and hit<br>"Save to Leaderboard"!</div>';
+      return;
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const rankCls = ['r1', 'r2', 'r3'];
+
+    let html = `
+      <div class="lb-head">
+        <div class="lb-head-cell">#</div>
+        <div class="lb-head-cell" style="text-align:left">Player</div>
+        <div class="lb-head-cell">W</div>
+        <div class="lb-head-cell">D</div>
+        <div class="lb-head-cell">L</div>
+        <div class="lb-head-cell">Win%</div>
+      </div>
+    `;
+
+    lb.forEach((e, i) => {
+      const sym = i < 3 ? medals[i] : (i + 1);
+      const rc = i < 3 ? rankCls[i] : 'other';
+      const rowc = i < 3 ? `rank-${i + 1}` : '';
+      const wr = e.winRate;
+      const wrc = wr >= 60 ? 'good' : wr >= 40 ? 'ok' : '';
+      html += `
+        <div class="lb-row ${rowc}">
+          <div class="lb-rank ${rc}">${sym}</div>
+          <div class="lb-name">${e.name}</div>
+          <div class="lb-cell w">${e.wins}</div>
+          <div class="lb-cell d">${e.draws}</div>
+          <div class="lb-cell l">${e.loses}</div>
+          <div class="lb-winrate ${wrc}">${wr}%</div>
+        </div>
+      `;
+    });
+
+    table.innerHTML = html;
+  }
+
+  async function clearLeaderboard() {
+    if (!confirm('Clear the entire leaderboard?')) return;
+    await lbSet([]);
+    renderLeaderboard();
+  }
+
+  function showToast(msg, color = '#40e880') {
+    const t = document.getElementById('save-toast');
+    t.textContent = msg;
+    t.style.background = color;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>

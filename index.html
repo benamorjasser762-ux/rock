@@ -618,15 +618,12 @@
   let playerName = '';
 
   // Storage
-  async function lbGet() {
-    try {
-      const r = await window.storage.get('rps-leaderboard', true);
-      return r ? JSON.parse(r.value) : [];
-    } catch { return []; }
+  function lbGet() {
+    try { return JSON.parse(localStorage.getItem('rps-leaderboard') || '[]'); } catch { return []; }
   }
 
-  async function lbSet(data) {
-    try { await window.storage.set('rps-leaderboard', JSON.stringify(data), true); } catch(e) { console.error(e); }
+  function lbSet(data) {
+    try { localStorage.setItem('rps-leaderboard', JSON.stringify(data)); } catch(e) { console.error(e); }
   }
 
   // Tabs
